@@ -84,6 +84,15 @@ void printLinesLength(int length, side horizontalSize, side verticalSide, bool c
   printLength(length, startPointX, startPointY);  
 }
 
+void printRedLine(side hSide)
+{
+  for(int i = 0; i < 7; i++)
+  {
+    int y = 20+i*i;
+    ucg.drawVLine(hSide==LEFT?i:WIDTH-1-i, y, HEIGHT - 2*y);    
+  }
+}
+
 void printLeftButtom(int length, bool clear)
 {
   printLinesLength(length, LEFT, BACK, clear);
@@ -108,6 +117,10 @@ void loop(void)
   printRightFront(i/2, flag);
   printLeftButtom(i/4, flag);
   printRightButtom(i/8, flag);
+  ucg.setColor(255, 0, 0);
+  if (i == 205) printRedLine(LEFT);
+  if (i == 195) printRedLine(RIGHT);
+  
  
   i--;
   //ucg.setColor(255, 255, i);
