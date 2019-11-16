@@ -1,4 +1,11 @@
+#define gnd_dat1 4
+#define echo_dat1 5
+#define trig_dat1 6
+#define vcc_dat1 7
+#define MS_LENGTH 5
+
 #include <SPI.h>
+#include <math.h>
 #include "Ucglib.h"
 Ucglib_ST7735_18x128x160_HWSPI ucg(/*cd=*/ 8, /*cs=*/ 10, /*reset=*/ 9);
 const int HEIGHT = 160;
@@ -6,13 +13,22 @@ const int WIDTH = 128;
 const int LINES_HEIGHT = 30;
 
 enum side{
-  LEFT,
-  RIGHT,
-  FRONT, 
-  BACK
+  LEFT = 0,
+  RIGHT = 1,
+  FRONT = 2, 
+  BACK = 3
 };
 void setup(void)
 {
+  pinMode(gnd_dat1, OUTPUT);
+  pinMode(echo_dat1, INPUT);
+  pinMode(trig_dat1, OUTPUT);
+  pinMode(vcc_dat1, OUTPUT);
+  digitalWrite(gnd_dat1, LOW);
+  digitalWrite(vcc_dat1, HIGH);
+  
+
+  
   delay(1000);
   ucg.begin(UCG_FONT_MODE_SOLID);
 //  ucg.setRotate0();
@@ -20,6 +36,7 @@ void setup(void)
   ucg.setFont(ucg_font_ncenR10_tr);
   ucg.setPrintPos(0,25);
   ucg.setColor(255, 255, 255);
+  Serial.begin(9600);
 }
 int i = 210;
 uint16_t w = 0;
@@ -33,7 +50,25 @@ void printLength(int length, int pos, int startPointY)
   ucg.print(length);
 }
 
-void printLinesLength(int length, side horizontalSize, side verticalSide, bool clear)
+int oldLength[4] = {0, 0, 0, 0};
+bool clearCheck(int length, int index)
+{
+  bool answer = false;
+  for(int i = 100; i > 1; i /= 10)
+    if (oldLength[index] >= i && length < i) 
+    {
+      answer = true;
+      break;
+    }
+  Serial.print(oldLength[index]);
+  Serial.print(" ");
+  Serial.print(length);
+  Serial.println(answer?" true":" false");
+  oldLength[index] = length;
+  return answer;
+}
+
+void printLinesLength(int length, side horizontalSize, side verticalSide)
 {
   int startPointX = WIDTH/4;
   if (horizontalSize == RIGHT) startPointX *= 3;
@@ -75,7 +110,7 @@ void printLinesLength(int length, side horizontalSize, side verticalSide, bool c
         break;
     }   
   }
-  if (clear)
+  if (clearCheck(length, horizontalSize*(verticalSide-2)))
   {
     ucg.setColor(0, 0, 0);
     printLength(888, startPointX, startPointY);  
@@ -93,30 +128,66 @@ void printRedLine(side hSide)
   }
 }
 
-void printLeftButtom(int length, bool clear)
+void printLeftButtom(int length)
 {
-  printLinesLength(length, LEFT, BACK, clear);
+  printLinesLength(length, LEFT, BACK);
 }
-void printLeftFront(int length, bool clear)
+void printLeftFront(int length)
 {
-  printLinesLength(length, LEFT, FRONT, clear);
+  printLinesLength(length, LEFT, FRONT);
 }
-void printRightButtom(int length, bool clear)
+void printRightButtom(int length)
 {
-  printLinesLength(length, RIGHT, BACK, clear);
+  printLinesLength(length, RIGHT, BACK);
 }
-void printRightFront(int length, bool clear)
+void printRightFront(int length)
 {
-  printLinesLength(length, RIGHT, FRONT, clear);
+  printLinesLength(length, RIGHT, FRONT);
 }
+
+int getDistance(int trig, int echo)
+{
+  digitalWrite(trig, HIGH); 
+  delayMicroseconds(2); 
+  digitalWrite(trig, LOW); 
+  delayMicroseconds(2); 
+  digitalWrite(trig, HIGH);
+  delayMicroseconds(10); 
+  digitalWrite(trig, LOW); 
+  return pulseIn(echo, HIGH)/58;
+}
+int middle = 0;
+int comp (const int *i, const int *j)
+{
+  return abs(*i - middle) - abs(*j-middle);
+}
+int getTrueDistance(int trig, int echo)
+{
+  int ms[MS_LENGTH];
+  int sum = 0;
+  for (int i = 0; i < MS_LENGTH; i++)
+  {
+    ms[i] = getDistance(trig, echo);
+    sum += ms[i];
+  }
+  middle = sum / MS_LENGTH;
+  qsort(ms, MS_LENGTH, sizeof(int), (int(*) (const void *, const void *)) comp);
+  int new_ms_length = (MS_LENGTH * 2) / 3;
+  sum = 0;
+  for (int i = 0; i < new_ms_length; i++)
+      sum += ms[i];
+  int resoult = sum /new_ms_length;
+  return resoult;  
+}
+
 void loop(void)
 { 
   bool flag = false;
   if (i == 9 || i == 99) flag = true; 
-  printLeftFront(i, flag);
-  printRightFront(i/2, flag);
-  printLeftButtom(i/4, flag);
-  printRightButtom(i/8, flag);
+  printLeftFront(getTrueDistance(trig_dat1, echo_dat1));
+  printRightFront(i/2);
+  printLeftButtom(i/4);
+  printRightButtom(i/8);
   ucg.setColor(255, 0, 0);
   if (i == 205) printRedLine(LEFT);
   if (i == 195) printRedLine(RIGHT);
