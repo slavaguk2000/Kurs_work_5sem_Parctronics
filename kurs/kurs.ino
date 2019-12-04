@@ -113,8 +113,6 @@ void printRedLine(side hSide)
   }
 }
 
-
-
 int getDistance(int trig, int echo)
 {
   digitalWrite(trig, HIGH); 
@@ -131,6 +129,7 @@ int comp (const int *i, const int *j)
 {
   return abs(*i - middle) - abs(*j-middle);
 }
+
 int getTrueDistance(int* trueDistance)
 {
   int ms[SENSORS_COUNT][MS_LENGTH];
@@ -147,17 +146,17 @@ int getTrueDistance(int* trueDistance)
     qsort(ms, MS_LENGTH, sizeof(int), (int(*) (const void *, const void *)) comp);
     int sum = 0;
     for (int j = 0; j < new_ms_length; j++)
-      sum += ms[j];
+      sum += ms[i][j];
     trueDistance[i] = sum /new_ms_length;
   }
 }
 
-void printLines()
+void printLines(int* trueDistance)
 {
-  printLinesLength(LEFT, FRONT);
-  printLinesLength(RIGHT, FRONT);
-  printLinesLength(LEFT, BACK);
-  printLinesLength(RIGHT, BACK);  
+  printLinesLength(trueDistance[0], LEFT, FRONT);
+  printLinesLength(trueDistance[5], RIGHT, FRONT);
+  printLinesLength(trueDistance[2], LEFT, BACK);
+  printLinesLength(trueDistance[3], RIGHT, BACK);  
 }
 
 void loop(void)
@@ -167,7 +166,7 @@ void loop(void)
   {
     bool flag = false;
     getTrueDistance(trueDistance);
-    printLines();
+    printLines(trueDistance);
     ucg.setColor(255, 0, 0);
     if (trueDistance[1] < 100) printRedLine(LEFT);
     if (trueDistance[4] < 100) printRedLine(RIGHT);
