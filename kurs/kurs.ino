@@ -1,13 +1,14 @@
-#define gnd_dat1 4
-#define echo_dat1 5
-#define trig_dat1 6
-#define vcc_dat1 7
 #define MS_LENGTH 5
+#define SENSORS_COUNT 6
 
 #include <SPI.h>
 #include <math.h>
 #include "Ucglib.h"
-Ucglib_ST7735_18x128x160_HWSPI ucg(/*cd=*/ 8, /*cs=*/ 10, /*reset=*/ 9);
+
+const int CD_SCREEN_PIN = 8, CS_SCREEN_PIN = 10, RESET_SCREEN_PIN = 9,
+              ECHO_PIN[6] = {}, TRIG_PIN[6] = {};
+
+Ucglib_ST7735_18x128x160_HWSPI ucg(/*cd=*/ CD_SCREEN_PIN, /*cs=*/ CS_SCREEN_PIN , /*reset=*/ RESET_SCREEN_PIN);
 const int HEIGHT = 160;
 const int WIDTH = 128;
 const int LINES_HEIGHT = 30;
@@ -20,23 +21,11 @@ enum side{
 };
 void setup(void)
 {
-  pinMode(gnd_dat1, OUTPUT);
-  pinMode(echo_dat1, INPUT);
-  pinMode(trig_dat1, OUTPUT);
-  pinMode(vcc_dat1, OUTPUT);
-  digitalWrite(gnd_dat1, LOW);
-  digitalWrite(vcc_dat1, HIGH);
-  
-
-  
-  delay(1000);
   ucg.begin(UCG_FONT_MODE_SOLID);
-//  ucg.setRotate0();
   ucg.clearScreen();
   ucg.setFont(ucg_font_ncenR10_tr);
   ucg.setPrintPos(0,25);
   ucg.setColor(255, 255, 255);
-  Serial.begin(9600);
 }
 int i = 210;
 uint16_t w = 0;
@@ -60,10 +49,6 @@ bool clearCheck(int length, int index)
       answer = true;
       break;
     }
-  Serial.print(oldLength[index]);
-  Serial.print(" ");
-  Serial.print(length);
-  Serial.println(answer?" true":" false");
   oldLength[index] = length;
   return answer;
 }
@@ -128,22 +113,7 @@ void printRedLine(side hSide)
   }
 }
 
-void printLeftButtom(int length)
-{
-  printLinesLength(length, LEFT, BACK);
-}
-void printLeftFront(int length)
-{
-  printLinesLength(length, LEFT, FRONT);
-}
-void printRightButtom(int length)
-{
-  printLinesLength(length, RIGHT, BACK);
-}
-void printRightFront(int length)
-{
-  printLinesLength(length, RIGHT, FRONT);
-}
+
 
 int getDistance(int trig, int echo)
 {
@@ -161,45 +131,45 @@ int comp (const int *i, const int *j)
 {
   return abs(*i - middle) - abs(*j-middle);
 }
-int getTrueDistance(int trig, int echo)
+int getTrueDistance(int* trueDistance)
 {
-  int ms[MS_LENGTH];
-  int sum = 0;
+  int ms[SENSORS_COUNT][MS_LENGTH];
   for (int i = 0; i < MS_LENGTH; i++)
   {
-    ms[i] = getDistance(trig, echo);
-    sum += ms[i];
+    for (int j = 0; j < SENSORS_COUNT; j++)
+    {
+      ms[j][i] = getDistance(TRIG_PIN[j], ECHO_PIN[j]);
+    }
   }
-  middle = sum / MS_LENGTH;
-  qsort(ms, MS_LENGTH, sizeof(int), (int(*) (const void *, const void *)) comp);
   int new_ms_length = (MS_LENGTH * 2) / 3;
-  sum = 0;
-  for (int i = 0; i < new_ms_length; i++)
-      sum += ms[i];
-  int resoult = sum /new_ms_length;
-  return resoult;  
+  for (int i = 0; i < SENSORS_COUNT; i++)
+  {
+    qsort(ms, MS_LENGTH, sizeof(int), (int(*) (const void *, const void *)) comp);
+    int sum = 0;
+    for (int j = 0; j < new_ms_length; j++)
+      sum += ms[j];
+    trueDistance[i] = sum /new_ms_length;
+  }
+}
+
+void printLines()
+{
+  printLinesLength(LEFT, FRONT);
+  printLinesLength(RIGHT, FRONT);
+  printLinesLength(LEFT, BACK);
+  printLinesLength(RIGHT, BACK);  
 }
 
 void loop(void)
 { 
-  bool flag = false;
-  if (i == 9 || i == 99) flag = true; 
-  printLeftFront(getTrueDistance(trig_dat1, echo_dat1));
-  printRightFront(i/2);
-  printLeftButtom(i/4);
-  printRightButtom(i/8);
-  ucg.setColor(255, 0, 0);
-  if (i == 205) printRedLine(LEFT);
-  if (i == 195) printRedLine(RIGHT);
-  
- 
-  i--;
-  //ucg.setColor(255, 255, i);
-  //i++;
-  //delay(100);  
-  //ucg.setPrintPos(0,25);
-  //ucg.drawBox(2,3,50,60);
-  //ucg.setPrintPos(0,75);
-  //ucg.print((int)i);
-  
+  int trueDistance[SENSORS_COUNT];
+  while(1)
+  {
+    bool flag = false;
+    getTrueDistance(trueDistance);
+    printLines();
+    ucg.setColor(255, 0, 0);
+    if (trueDistance[1] < 100) printRedLine(LEFT);
+    if (trueDistance[4] < 100) printRedLine(RIGHT);
+  }
 }
