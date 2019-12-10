@@ -179,13 +179,21 @@ void loop(void)
   //int trueDistance[SENSORS_COUNT];
   //Serial.println(getDistance(7,6));
   //
-  printLength(getDistance(TRIG_PIN[0], ECHO_PIN[0]), 20, 50);
-  printLength(getDistance(TRIG_PIN[1], ECHO_PIN[1]), 20, 100);
-  printLength(getDistance(TRIG_PIN[2], ECHO_PIN[2]), 20, 150);
-  printLength(getDistance(TRIG_PIN[3], ECHO_PIN[3]), 100, 150);
-  printLength(getDistance(TRIG_PIN[4], ECHO_PIN[4]), 100, 100);
-  printLength(getDistance(TRIG_PIN[5], ECHO_PIN[5]), 100, 50);
+  for (int i = 0; i < 6; i++)
+  {
+    Serial.print("Sensor ");
+    Serial.print(i);
+    Serial.print(": ");
+    Serial.println(getDistance(TRIG_PIN[i], ECHO_PIN[i]));    
+  }
   
+//  printLength(getDistance(TRIG_PIN[0], ECHO_PIN[0]), 20, 50);
+//  printLength(getDistance(TRIG_PIN[1], ECHO_PIN[1]), 20, 100);
+//  printLength(getDistance(TRIG_PIN[2], ECHO_PIN[2]), 20, 150);
+//  printLength(getDistance(TRIG_PIN[3], ECHO_PIN[3]), 100, 150);
+//  printLength(getDistance(TRIG_PIN[4], ECHO_PIN[4]), 100, 100);
+//  printLength(getDistance(TRIG_PIN[5], ECHO_PIN[5]), 100, 50);
+//  
   
 //  while(1)
 //  {
